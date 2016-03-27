@@ -228,8 +228,12 @@ def get_team():
 def player(player):
   cursor = g.conn.execute("select * from player")
   player_dict = {}
+  pict = {}
+  video = {}
   for result in cursor:
     player_dict[result['pname']] = result['pdata']
+    pict[result['pname']] = result['picture']
+    video[result['pname']] = result['video']
   #print player_dict
   cursor.close()
   context = {}
@@ -237,6 +241,8 @@ def player(player):
   context['score'] = player_dict[player][0]
   context['rebound'] = player_dict[player][1]
   context['assists'] = player_dict[player][2]
+  context['picture'] = pict[player]
+  context['video'] = video[player]
   return render_template("player.html", **context)
 
 @app.route('/team/<team>')

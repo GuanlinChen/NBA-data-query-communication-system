@@ -1,1 +1,4 @@
-db.pdf server.py test.db
+db.pdf 
+server.py 
+test.db
+.DS_STORE

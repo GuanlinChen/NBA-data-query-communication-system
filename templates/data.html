@@ -1,0 +1,41 @@
+<html>
+  <style>
+    body{
+      font-size: 15pt;
+      font-family: arial;
+    }
+  </style>
+
+
+<body>
+<!--  <h1>Account</h1>
+  <div>{{p_name}}</div>
+
+  <div>Players:
+    {% for n in data %}
+    <div>{{p_name}}</div>
+    {% endfor %}
+  </div>
+-->
+
+<!--<p><a href="/another">Go to the other page</a></p>
+-->
+<!--<form method="POST" action="/add">
+<p>Name of new computer scientist: <input type="text" name="name"> <input type="submit" value="Add"></p>
+</form>-->
+
+<form method="POST" action="/get_player">
+<p>Please input the player you want to query: <input type="text" name="player">
+<input type="submit" value="Submit"></p>
+</form>
+
+<form method="POST" action="/get_team">
+<p>Please input the team you want to query: <input type="text" name="team">
+<input type="submit" value="Submit"></p>
+</form>
+
+</body>
+
+
+</html>
+

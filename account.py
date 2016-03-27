@@ -37,7 +37,7 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #
 #     DATABASEURI = "postgresql://ewu2493:foobar@w4111db.eastus.cloudapp.azure.com/ewu2493"
 #
-DATABASEURI = "sqlite:///account.db"
+DATABASEURI = "postgresql://gc2666:PZVNPF@w4111db.eastus.cloudapp.azure.com/gc2666"
 
 
 #
@@ -61,17 +61,19 @@ engine = create_engine(DATABASEURI)
 # 
 # The setup code should be deleted once you switch to using the Part 2 postgresql database
 #
-engine.execute("""DROP TABLE IF EXISTS test;""")
-engine.execute("""CREATE TABLE IF NOT EXISTS Account ( 
-userid int, 
-username text,
-password text,
-email text,
-blockflag int ,
-PRIMARY KEY(userid));""")
-gc2666 = "gc2666"
-id = 2
-query = """INSERT INTO Account(userid, username, password, email, blockflag) VALUES ('{0}', '{1}', 'gc2666', 'gc2666@columbia.edu', 0);""".format(id, gc2666)
+
+
+#engine.execute("""DROP TABLE IF EXISTS test;""")
+#engine.execute("""CREATE TABLE IF NOT EXISTS Account ( 
+#userid int, 
+#username text,
+#password text,
+#email text,
+#blockflag int ,
+#PRIMARY KEY(userid));""")
+#gc2666 = "gc2666"
+#id = 2
+#query = """INSERT INTO Account(userid, username, password, email, blockflag) VALUES ('{0}', '{1}', 'gc2666', 'gc2666@columbia.edu', 0);""".format(id, gc2666)
 #engine.execute(query)
 #
 # END SQLITE SETUP CODE
@@ -191,10 +193,65 @@ def index():
 # notice that the functio name is another() rather than index()
 # the functions for each app.route needs to have different names
 #
-@app.route('/another')
-def another():
-  return render_template("anotherfile.html")
 
+#The data mainpage
+@app.route('/data')
+def data():
+  cursor = g.conn.execute("select * from player")
+  player_dict = {}
+  for result in cursor:
+    player_dict[result['pname']] = result['pdata']
+  #print player_dict
+  cursor.close()
+  #player = request.form['player']
+  #print 'the input is %s' % player
+  #if player in player_dict.keys():
+  #  weburl = "/player/%s" % player
+  #  return redirect(weburl)
+ 
+  return render_template("data.html")
+
+
+@app.route('/get_player', methods=['POST'])
+def get_player():
+  player = request.form['player']
+  weburl = "/player/%s" % player
+  return redirect(weburl)
+
+@app.route('/get_team', methods=['POST'])
+def get_team():
+  team = request.form['team']
+  weburl = "/team/%s" % team
+  return redirect(weburl)
+
+@app.route('/player/<player>')
+def player(player):
+  cursor = g.conn.execute("select * from player")
+  player_dict = {}
+  for result in cursor:
+    player_dict[result['pname']] = result['pdata']
+  #print player_dict
+  cursor.close()
+  context = {}
+  context['name'] = player
+  context['score'] = player_dict[player][0]
+  context['rebound'] = player_dict[player][1]
+  context['assists'] = player_dict[player][2]
+  return render_template("player.html", **context)
+
+@app.route('/team/<team>')
+def team(team):
+  cursor = g.conn.execute("select * from team")
+  team_dict = {}
+  for result in cursor:
+    team_dict[result['tname']] = result['location']
+    #print result['tname'], result['location']
+  cursor.close()
+  context = {}
+  context['name'] = team
+  context['location'] = 'Houston'
+  #print context
+  return render_template("team.html", **context)
 
 # Example of adding new data to the database
 @app.route('/add', methods=['POST'])
@@ -222,8 +279,17 @@ def login():
   for i in user_info.keys():
     if i == str(username) and user_info[i] == str(password):
       print 'Welcome %s' % username
+      
+      weburl = '/mainpage/%s' % username
+      return redirect(weburl)
+      #return render_template("main_page.html", **context)
   return redirect('/')
 
+@app.route('/mainpage/<username>')
+def mainpage(username):
+  print username, 'is in this page'
+  context = dict(data = username)
+  return render_template("main_page.html", **context)
 
 """@app.route('/login')
 def login():

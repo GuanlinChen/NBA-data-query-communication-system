@@ -1,6 +1,6 @@
 <html>
-  <style>
-    body{ 
+<style>
+    body{
       font-size: 15pt;
       font-family: arial;
     }
@@ -9,7 +9,10 @@
 
 <body>
   <h1>Account</h1>
-  <div>{{data}}</div>
+  <div>Player Name:{{name}}</div>
+  <div>Average Score:{{score}}</div>
+  <div>Average Rebound:{{rebound}}</div>
+  <div>Average Assists:{{assists}}</div>
 
 <!--  <div>
     {% for n in data %}
@@ -24,13 +27,7 @@
 <p>Name of new computer scientist: <input type="text" name="name"> <input type="submit" value="Add"></p>
 </form>-->
 
-<form method="POST" action="/login">
-<p>username: <input type="text" name="username"> 
-password: <input type="text" name="password">
-<input type="submit" value="Add"></p>
-</form>
+
 
 </body>
-
-
 </html>

@@ -275,6 +275,25 @@ def team(team):
   #print context
   return render_template("team.html", **context)
 
+@app.route('/game')
+def game():
+  print 'In game function'
+  return render_template('game.html')
+
+
+@app.route('/get_game_date',methods=['POST'])
+def get_game_date():
+  date = request.form['date']
+  print date
+  redirect('/game')
+
+@app.route('/get_game_team',methods=['POST'])
+def get_game_team():
+  team = request.form['team']
+  print team
+  redirect('/game')
+
+
 # Example of adding new data to the database
 @app.route('/add', methods=['POST'])
 def add():

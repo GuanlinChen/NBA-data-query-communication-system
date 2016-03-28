@@ -234,7 +234,13 @@ def player(player):
     player_dict[result['pname']] = result['pdata']
     pict[result['pname']] = result['picture']
     video[result['pname']] = result['video']
+    
   #print player_dict
+  cursor.close()
+  #print 'next step'
+  cursor = g.conn.execute("select tname from player, belongs, team where player.pid = belongs.pid and belongs.tid = team.tid and player.pname='%s';" % player)
+  for result in cursor:
+    tname = result['tname']
   cursor.close()
   context = {}
   context['name'] = player
@@ -243,19 +249,29 @@ def player(player):
   context['assists'] = player_dict[player][2]
   context['picture'] = pict[player]
   context['video'] = video[player]
+  context['tname'] = tname
   return render_template("player.html", **context)
 
 @app.route('/team/<team>')
 def team(team):
   cursor = g.conn.execute("select * from team")
   team_dict = {}
+  logo_dict = {}
   for result in cursor:
     team_dict[result['tname']] = result['location']
+    logo_dict[result['tname']] = result['logo']
     #print result['tname'], result['location']
   cursor.close()
+  player = []
+  cursor = g.conn.execute("select pname from player, belongs, team where player.pid = belongs.pid and team.tid = belongs.tid and tname = '%s';" % team)
+  for result in cursor:
+    player.append(result['pname'])
+  #print player
   context = {}
   context['name'] = team
-  context['location'] = 'Houston'
+  context['location'] = team_dict[team]
+  context['player'] = player
+  context['logo'] = logo_dict[team]
   #print context
   return render_template("team.html", **context)
 

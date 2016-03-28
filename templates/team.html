@@ -11,7 +11,12 @@
   <h1>Team Information</h1>
   <div>Team Name:{{name}}</div>
   <div>Team Location:{{location}}</div>
-
+  <div>Current Players in the team(Recorded in the database):
+  {% for n in player %}
+  <div><a href = "/player/{{n}}">{{n}}</a></div>
+  {% endfor %}
+  </div>
+  <p><img src = {{logo}}></p>
 <!--  <div>
     {% for n in data %}
     <div>{{n}}</div>

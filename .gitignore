@@ -2,3 +2,4 @@ db.pdf
 server.py 
 test.db
 .DS_STORE
+*.swp

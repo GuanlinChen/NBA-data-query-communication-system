@@ -19,10 +19,10 @@ import os
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response
-
+from datetime import datetime
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
-
+import time
 
 #
 # The following uses the sqlite3 database test.db -- you can use this for debugging purposes
@@ -275,6 +275,7 @@ def team(team):
   #print context
   return render_template("team.html", **context)
 
+#These functions are for the game data
 @app.route('/game')
 def game():
   print 'In game function'
@@ -284,14 +285,75 @@ def game():
 @app.route('/get_game_date',methods=['POST'])
 def get_game_date():
   date = request.form['date']
-  print date
-  redirect('/game')
+  #print date
+  weburl = "/gamedate/%s" % date
+  print weburl
+  return redirect(weburl)
 
 @app.route('/get_game_team',methods=['POST'])
 def get_game_team():
   team = request.form['team']
+  #print team
+  weburl = 'gameteam/%s' % team
+  return redirect(weburl)
+
+@app.route('/gameteam/<team>')
+def getteam(team):
   print team
-  redirect('/game')
+  context = {}
+
+  query = "select g.hostscore, g.guestscore, g.time, t2.tname as guestteam from game as g, team as t1, team as t2 where g.hostid = t1.tid and g.guestid = t2.tid and t1.tname = '%s';" % str(team)
+  cursor = g.conn.execute(query)
+  host_list = []
+  for result in cursor:
+    dict = {}
+    dict['time'] = result['time']
+    dict['guestteam'] = result['guestteam']
+    dict['hostscore'] = result['hostscore']
+    dict['guestscore'] = result['guestscore']
+    host_list.append(dict)
+  context['host'] = host_list
+  cursor.close()
+  print 'host query finished'
+
+  query = "select g.hostscore, g.guestscore, g.time, t1.tname as hostteam from game as g, team as t1, team as t2 where g.hostid = t1.tid and g.guestid = t2.tid and t2.tname = '%s';" % str(team)
+  cursor = g.conn.execute(query)
+  guest_list = []
+  for result in cursor:
+    dict = {}
+    dict['time'] = result['time']
+    dict['hostteam'] = result['hostteam']
+    dict['hostscore'] = result['hostscore']
+    dict['guestscore'] = result['guestscore']
+    guest_list.append(dict)
+  context['guest'] = guest_list
+  cursor.close()
+  context['team'] = team
+  print 'guest query finished'
+  print context
+  return render_template('gameteam.html', **context)
+  
+@app.route('/gamedate/<date>')
+def gamedate(date):
+  #print 'hello'
+  #d = datetime.strptime(str(date), '%Y-%m-%d')
+  #print d['date']
+  #dd = datetime.strftime('%Y-%m-%d',struct_time(date))
+  query = "select t1.tname as hostname, t2.tname as guestname, g.hostscore, g.guestscore from team as t1, team as t2, game as g where t1.tid = g.hostid and t2.tid = g.guestid and g.time = '%s'" % str(date)
+  #print query
+  game_dict = []
+  cursor = g.conn.execute(query)
+  for result in cursor:
+    dict = {}
+    dict['hostname'] = result['hostname']
+    dict['time'] = result['time']
+    dict['hostscore'] = result['hostscore']
+    dict['guestscore'] = result['guestscore']
+    game_dict.append(dict)
+  cursor.close()
+  context = {}
+  context['game'] = game_dict
+  return render_template('gamedate.html', **context)
 
 
 # Example of adding new data to the database
@@ -361,7 +423,7 @@ if __name__ == "__main__":
 
     HOST, PORT = host, port
     print "running on %s:%d" % (HOST, PORT)
-    app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
+    app.run(host=HOST, port=PORT, debug=True, threaded=threaded)
 
 
   run()

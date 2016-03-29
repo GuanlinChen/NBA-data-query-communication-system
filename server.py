@@ -258,7 +258,7 @@ def gamedate(date):
   for result in cursor:
     dict = {}
     dict['hostname'] = result['hostname']
-    dict['time'] = date
+    dict['time'] = result['time']
     dict['hostscore'] = result['hostscore']
     dict['guestscore'] = result['guestscore']
     game_dict.append(dict)
@@ -302,7 +302,7 @@ def login():
       weburl = "/" + name + "page" + "?username=" + username
       return redirect(weburl)
       #return render_template("main_page.html", **context)
-  return redirect('/index?%s'%name)
+  return redirect('/index?name=%s'%name)
 
 @app.route('/register' , methods = ['GET' , 'POST'])
 def register():
@@ -315,6 +315,10 @@ def user():
     newusername = request.form['username']
     newpassword = request.form['password']
     newemail = request.form['email']
+    cursor = g.conn.execute("SELECT username FROM Account")
+    for result in cursor:
+      if newusername == result['username']:
+        return redirect('/register')
     blockflag = 0
     count = 0
     cursor = g.conn.execute("SELECT COUNT(*) FROM account")
@@ -392,7 +396,13 @@ def forum():
   for result in cursor:
     posts.append({'login_user': str(username) , 'user': result['username'] , 'content': result['content'] , 'time': result['posttime']})
   #print posts
-  dict = {'posts': posts}
+  cursor = g.conn.execute("SELECT min(posttime) , max(posttime) FROM postssend")
+  minposttime = ""
+  maxposttime = ""
+  for result in cursor:
+    minposttime = str(result['min'])
+    maxposttime = str(result['max'])
+  dict = {'posts': posts , 'minposttime': minposttime , 'maxposttime': maxposttime}
   cursor.close()
   return render_template('forum.html' , dict = dict)
 
@@ -403,13 +413,22 @@ def forumfilter():
   startdate = datetime.datetime.strptime(str(request.form['from']) + ' 00:00:00' , '%Y-%m-%d %H:%M:%S')
   enddate = datetime.datetime.strptime(str(request.form['to']) + ' 23:59:59' , '%Y-%m-%d %H:%M:%S')
   posts = []
-  cursor = g.conn.execute("SELECT content , username , posttime FROM postssend AS p , account AS a WHERE a.userid = p.uid AND p.content LIKE '{0}' AND p.posttime >= '{1}' AND p.posttime <= '{2}'".format(content , startdate , enddate))
+  if content == "%%all%%":
+    cursor = g.conn.execute("SELECT content , username , posttime FROM postssend AS p , account AS a WHERE a.userid = p.uid AND p.posttime >= '{1}' AND p.posttime <= '{2}'".format(content , startdate , enddate))
+  else:
+    cursor = g.conn.execute("SELECT content , username , posttime FROM postssend AS p , account AS a WHERE a.userid = p.uid AND p.content LIKE '{0}' AND p.posttime >= '{1}' AND p.posttime <= '{2}'".format(content , startdate , enddate))
   for result in cursor:
     posts.append({'login_user': str(username) , 'user': result['username'] , 'content': result['content'] , 'time': result['posttime']})
+  cursor = g.conn.execute("SELECT min(posttime) , max(posttime) FROM postssend")
+  minposttime = ""
+  maxposttime = ""
+  for result in cursor:
+    minposttime = str(result['min'])
+    maxposttime = str(result['max'])
   if len(posts) == 0:
-    return render_template('empty.html' , dict = {'posts': [{'login_user': str(username) , 'section': 'post'}]})
-  dict = {'posts': posts}
-  print dict
+    return render_template('empty.html' , dict = {'posts': [{'login_user': str(username) , 'section': 'post'}] , 'minposttime': minposttime , 'maxposttime': maxposttime})
+  dict = {'posts': posts , 'minposttime': minposttime , 'maxposttime': maxposttime}
+  #print dict
   cursor.close()
   return render_template('forum.html' , dict = dict)
 
@@ -420,6 +439,7 @@ def send():
     post = str(request.form.get('post'))
     poster = str(request.args.get('poster'))
     cursor = g.conn.execute("SELECT blockflag FROM account WHERE username = '%s'" % poster)
+    ifblock = 0
     for result in cursor:
       ifblock = int(result['blockflag'])
     if ifblock == 1:
@@ -435,64 +455,19 @@ def send():
     cursor = g.conn.execute("SELECT COUNT(*) FROM postssend")
     for result in cursor:
       count = result[count]
-    pid = count+1
-    g.conn.execute("INSERT INTO postssend VALUES ('{0}' ,'{1}', '{2}', '{3}')".format(int(pid), str(uid) , post , str(posttime)))
+    while 1:
+      try:
+        #print "iteration"
+        count += 1
+        #print count
+        pid = count
+        g.conn.execute("INSERT INTO postssend VALUES ('{0}' ,'{1}', '{2}', '{3}')".format(int(pid), str(uid) , post , str(posttime)))
+      except:
+        #print "error"
+        continue
+      break
+    cursor.close()
     return redirect("/forum?username=%s" %poster)
-
-@app.route('/forum/comment' , methods = ['GET' , 'POST'])
-def comment():
-  content = request.args.get('postcontent')
-  username = request.args.get('uesr')
-  print content , username
-  cursor = g.conn.execute("SELECT p.content , c.content , a.username , c.commenttime FROM comment AS c, postssend AS p, account AS a Where c.pid = p.pid AND c.ownerid = p.uid AND c.uid = a.userid")
-  comment = []
-  for result in cursor:
-    comment.append({'login_user': str(username) , 'user': result['username'] , 'content': result['content'] , 'time': result['commenttime'] , 'post': str(content)})
-  if len(comment) == 0:
-    return render_template('emptycomment.html' , dict = {'comment': [{'login_user': str(username) , 'post': str(content)}]})
-  print comment
-  dict = {'comment': comment}
-  return render_template("comment.html" , dict = dict)
-
-@app.route('/forum/sendcomment' , methods = ['GET' , 'POST'])
-def sendcomment():
-  ISOTIMEFORMAT='%Y-%m-%d %X'
-  comment = str(request.form.get('comment'))
-  poster = str(request.args.get('poster'))
-  post = str(request.args.get('post'))  
-  cursor = g.conn.execute("SELECT blockflag FROM account WHERE username = '%s'" % poster)
-  for result in cursor:
-    ifblock = int(result['blockflag'])
-  if ifblock == 1:
-    dict = {'username': poster}
-    return render_template("already_block.html" , dict = dict)
-  if post.find('\'') != -1:
-    post = post.replace('\'' , '\'\'')
-  posttime = time.strftime( ISOTIMEFORMAT, time.localtime( time.time() ) )
-  count = 0
-  send = {}
-  cursor = g.conn.execute("SELECT userid FROM account WHERE username = '%s'" % poster)
-  for result in cursor:
-    uid = result['userid']
-    send['uid'] = int(uid)
-  cursor = g.conn.execute("SELECT pid , uid FROM postssend WHERE content = '%s'" % post)
-  for result in cursor:
-    ownerid = result['uid']
-    pid = result['pid']
-    send['ownerid'] = int(ownerid)
-    send['pid'] = int(pid)
-  
-  send['content'] = comment
-  send['time'] = time.strftime( ISOTIMEFORMAT, time.localtime( time.time() ) )
-  
-  cursor = g.conn.execute("SELECT COUNT(*) FROM comment")
-  for result in cursor:
-    count = result[count]
-  cid = count+1
-  g.conn.execute("INSERT INTO comment VALUES ('{0}' ,'{1}', '{2}', '{3}' , '{4}' , '{5}')".format(int(cid), send['pid'] , send['ownerid'] , send['uid'] , send['content'] , send['time']))
-  
-  return redirect("/forum/comment?username='{0}'post='{1}'".format(poster , post))
-
 
 @app.route('/adindex' , methods = ['GET' , 'POST'])
 def adindex():
@@ -538,6 +513,20 @@ def adlogin():
 @app.route('/adminpage' , methods = ['GET' , 'POST'])
 def adminpage():
   username = request.args.get('username')
+  if request.method == 'POST':
+    newusername = request.form['adminname']
+    newpassword = request.form['adminpassword']
+    cursor = g.conn.execute("SELECT username FROM administrator")
+    for result in cursor:
+      if newusername == result['username']:
+        return redirect('/register')
+    count = 0
+    cursor = g.conn.execute("SELECT COUNT(*) FROM administrator")
+    for result in cursor:
+      count = result['count']
+    aid = count + 1
+    g.conn.execute("INSERT INTO administrator VALUES ('{0}' , '{1}' , '{2}')".format(int(aid) , str(newusername) , str(newpassword)))
+    return redirect("/adminpage?username=%s" % newusername)
   cursor = g.conn.execute("SELECT * FROM administrator")
   admin_info = {}
   for result in cursor:
@@ -551,6 +540,7 @@ def adminpage():
 
 @app.route('/userlist' , methods = ['GET' , 'POST'])
 def userlist():
+  username = request.args.get('username')
   cursor = g.conn.execute("SELECT * FROM Account")
   userlist = []
   user_info = {}
@@ -573,35 +563,52 @@ def userlist():
       posts.append({'content': result['content'] , 'time': result['posttime']})
     user['posts'] = posts
     cursor.close();
-  dict = {'userlist': userlist}
+  dict = {'username': username , 'userlist': userlist}
   return render_template("userlist.html" , dict = dict)
 
 @app.route("/usermanage" , methods = ['GET' , 'POST'])
 def usermanage():
   username = request.args.get('username')
+  adminname = request.args.get('adminname')
   cursor = g.conn.execute("SELECT blockflag FROM account WHERE username = '%s'" % str(username))
   for result in cursor:
     if int(result['blockflag']) == 1:
       g.conn.execute("UPDATE account SET blockflag = 0 WHERE username = '%s'" % str(username))
     else:
        g.conn.execute("UPDATE account SET blockflag = 1 WHERE username = '%s'" % str(username))
-  return redirect('/userlist')
+  return redirect('/userlist?username=%s'%adminname)
 
 @app.route("/forummanage" , methods = ['GET' , 'POST'])
 def forummanage():
+  adminname = request.args.get("username")
   post = []
   cursor = g.conn.execute("SELECT a.username , p.content , p.posttime FROM account AS a , postssend AS p WHERE a.userid = p.uid")
   for result in cursor:
     dict = {'content': result['content'] , 'username': result['username'] , 'time': result['posttime']}
     post.append(dict)
-  dict = {'post': post}
+  dict = {'adminname': adminname , 'post': post}
   return render_template('forummanage.html' , dict = dict)  
   
 @app.route("/deletepost" , methods = ['GET' , 'POST'])
 def deletepost():
   content = request.args.get('content')
   g.conn.execute("DELETE FROM postssend WHERE content = '%s'"%str(content))
-  return redirect("/forummanage")
+  return redirect("/forummanage?adminname=%s"%adminname)
+
+@app.route("/modifypage" , methods = ['GET' , 'POST'])
+def modifypage():
+  adminname = request.args.get('username')
+  return render_template('modifydata.html' , dict = {'username': str(adminname)})
+
+@app.route("/modifydata" , methods = ['GET' , 'POST'])
+def modifydata():
+  adminname = request.args.get('username')
+  date = request.form['date']
+  host = request.form['host']
+  hostscore = request.form['hostscore']
+  guestscore = request.form['guestscore']
+  g.conn.execute("UPDATE game SET hostscore = '{0}' , guestscore = '{1}' WHERE time = '{2}' AND location = '{3}'".format(int(hostscore) , int(guestscore) , str(date) , str(host)))
+  return render_template("modifysuccess.html" , dict = {'username': str(adminname)})
 
 if __name__ == "__main__":
   import click

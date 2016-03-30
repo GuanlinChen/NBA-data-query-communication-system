@@ -258,9 +258,10 @@ def gamedate(date):
   for result in cursor:
     dict = {}
     dict['hostname'] = result['hostname']
-    dict['time'] = result['time']
+    dict['time'] = date
     dict['hostscore'] = result['hostscore']
     dict['guestscore'] = result['guestscore']
+    dict['guestname'] = result['guestname']
     game_dict.append(dict)
   cursor.close()
   context = {}

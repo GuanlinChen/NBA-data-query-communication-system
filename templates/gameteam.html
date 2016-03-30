@@ -8,16 +8,16 @@
 
 
 <body>
-  <h1>Game</h1>
-  <div>Home game:</div>
+  <h1 align="center">Game</h1>
+  <div align="center">Home game:</div>
   {% for n in host %}
-  <div>{{n['time']}}:  {{team}} {{n['hostscore']}}:{{n['guestscore']}} {{n['guestteam']}}</div>
+  <div align="center">{{n['time']}}:  {{team}} {{n['hostscore']}}:{{n['guestscore']}} {{n['guestteam']}}</div>
   {% endfor %}
   </div>
   
-  <div>Guest game:</div>
+  <div align="center">Guest game:</div>
   {% for n in guest %}
-  <div>{{n['time']}}:  {{n['hostteam']}} {{n['hostscore']}}:{{n['guestscore']}} {{team}}</div>
+  <div align="center">{{n['time']}}:  {{n['hostteam']}} {{n['hostscore']}}:{{n['guestscore']}} {{team}}</div>
   {% endfor %}
   </div>
 <!--  <div>

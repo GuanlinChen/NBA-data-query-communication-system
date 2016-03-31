@@ -592,8 +592,11 @@ def forummanage():
   
 @app.route("/deletepost" , methods = ['GET' , 'POST'])
 def deletepost():
+  adminname = request.args.get('adminname')
   content = request.args.get('content')
-  g.conn.execute("DELETE FROM postssend WHERE content = '%s'"%str(content))
+  if content.find('\'') != -1:
+    content = content.replace('\'' , '\'\'')
+  g.conn.execute("DELETE FROM postssend WHERE content = '%s'" %str(content))
   return redirect("/forummanage?adminname=%s"%adminname)
 
 @app.route("/modifypage" , methods = ['GET' , 'POST'])
